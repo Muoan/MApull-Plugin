@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>墨安拉取面板</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div id="loginView" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="logo">⬇️</div>
+    <h1 id="loginTitle">墨安拉取面板</h1>
+    <p class="sub">输入面板 token 登录</p>
+    <input id="tokenInput" type="password" placeholder="token" autocomplete="off">
+    <button id="loginBtn" class="btn primary">登 录</button>
+    <p id="loginError" class="error"></p>
+    <p class="disclaimer">本页仅提供拉取下载与短期预览，对内容不做审查，不记录使用者信息，如有问题概不负责</p>
+  </div>
+</div>
+
+<div id="mainView" class="hidden">
+  <header>
+    <div class="brand"><span class="logo-sm">⬇️</span><span id="appTitle">墨安拉取面板</span></div>
+    <div class="header-right">
+      <button id="logoutBtn" class="btn ghost sm">退出</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="tasks">任务</button>
+    <button class="tab" data-tab="files">文件</button>
+    <button class="tab" data-tab="settings">设置</button>
+  </nav>
+
+  <main>
+
+    <section id="tab-tasks" class="panel">
+      <div class="new-task">
+        <input id="urlInput" type="text" placeholder="粘贴 图片/视频/文件 直链或 m3u8 链接，或网页地址（自动提取）" autocomplete="off">
+        <button id="addTaskBtn" class="btn primary">开始下载</button>
+      </div>
+      <div class="hint">支持：直链文件 / 图片 / 视频 / m3u8 视频（自动并行下载分片并用 ffmpeg 合并成 mp4）/ 网页链接自动提取直链</div>
+      <div id="taskList" class="task-list"></div>
+    </section>
+
+    <section id="tab-files" class="panel hidden">
+      <div class="file-toolbar">
+        <span>已完成文件（来自 QQ 的任务可一键回传）</span>
+        <button id="refreshFilesBtn" class="btn ghost sm">刷新</button>
+      </div>
+      <table class="file-table">
+        <thead><tr><th>#</th><th>文件名</th><th>大小</th><th>来源</th><th>操作</th></tr></thead>
+        <tbody id="fileBody"></tbody>
+      </table>
+    </section>
+
+    <section id="tab-settings" class="panel hidden">
+      <div class="settings-form">
+        <label>面板标题<input id="setTitle" type="text"></label>
+        <label>端口<input id="setPort" type="number" min="1000" max="65535"></label>
+        <label>同时下载任务数<input id="setActive" type="number" min="1" max="10"></label>
+        <label>m3u8 分片并发数<input id="setConc" type="number" min="1" max="32"></label>
+        <label>自动回传大小上限(MB)<input id="setAutoSend" type="number" min="1" max="100"></label>
+        <label>单文件大小上限(MB)<input id="setMaxFile" type="number" min="1" max="2048"></label>
+        <label>回传后自动清理(分钟)<input id="setCleanup" type="number" min="1" max="1440"></label>
+        <label>当前 token <button id="resetTokenBtn" class="btn ghost sm">重置</button></label>
+        <div class="token-box" id="tokenBox"></div>
+        <button id="saveConfigBtn" class="btn primary">保存设置</button>
+        <p id="configMsg" class="success"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<div id="previewModal" class="modal hidden">
+  <div class="modal-mask" onclick="closePreview()"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <span class="modal-title" id="previewTitle">预览</span>
+      <button class="btn ghost sm" onclick="closePreview()">✕ 关闭</button>
+    </div>
+    <div class="modal-body" id="previewBody"></div>
+    <p class="disclaimer modal-note">本页仅提供拉取下载与短期预览，对内容不做审查，不记录使用者信息，如有问题概不负责</p>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

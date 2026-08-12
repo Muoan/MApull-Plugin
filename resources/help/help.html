@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: linear-gradient(160deg, #0b1020 0%, #141b31 45%, #1b2440 100%);
+    padding: 28px 32px;
+    width: 760px;
+  }
+  .header { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
+  .logo {
+    width: 64px; height: 64px; border-radius: 16px; flex-shrink: 0;
+    background: linear-gradient(135deg, #4f8cff, #6a5cff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; box-shadow: 0 8px 24px rgba(79,140,255,.35);
+  }
+  .title { font-size: 30px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+  .subtitle { font-size: 13px; color: #8b96ad; margin-top: 4px; }
+  .divider {
+    height: 2px; margin: 16px 0 18px; border-radius: 2px;
+    background: linear-gradient(90deg, rgba(79,140,255,.7), rgba(106,92,255,.3), transparent);
+  }
+  .group {
+    background: rgba(23,30,46,.82);
+    border: 1px solid #26324a; border-radius: 14px;
+    padding: 16px 18px; margin-bottom: 14px;
+  }
+  .group-name {
+    font-size: 15px; font-weight: 700; color: #7aa2ff;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .group-name::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: linear-gradient(#4f8cff, #6a5cff); }
+  .cmd { display: flex; align-items: baseline; gap: 12px; padding: 7px 0; border-bottom: 1px dashed rgba(38,50,74,.6); }
+  .cmd:last-child { border-bottom: none; }
+  .cmd-key {
+    font-family: "Consolas", "Courier New", monospace;
+    color: #ffd479; background: rgba(255,212,121,.08);
+    border: 1px solid rgba(255,212,121,.25); border-radius: 6px;
+    padding: 2px 10px; font-size: 14px; white-space: nowrap; font-weight: 600;
+  }
+  .cmd-desc { color: #aab4c8; font-size: 13px; }
+  .cmd-auth { margin-left: auto; color: #5f6b84; font-size: 11px; white-space: nowrap; }
+  .tip {
+    background: rgba(79,140,255,.08); border: 1px solid rgba(79,140,255,.25);
+    border-radius: 12px; padding: 12px 16px; font-size: 12.5px; color: #93a3c0; line-height: 1.8;
+  }
+  .tip b { color: #7aa2ff; }
+  .footer { text-align: center; color: #4a5670; font-size: 11px; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">⬇️</div>
+    <div>
+      <div class="title">墨安拉取面板</div>
+      <div class="subtitle">直链 / m3u8 视频下载 · QQ 命令 + Web 面板双通道</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+
+  {{each groups}}
+  <div class="group">
+    <div class="group-name">{{$value.name}}</div>
+    {{each $value.list}}
+    <div class="cmd">
+      <span class="cmd-key">{{$value.key}}</span>
+      <span class="cmd-desc">{{$value.desc}}</span>
+      {{if $value.auth}}<span class="cmd-auth">{{$value.auth}}</span>{{/if}}
+    </div>
+    {{/each}}
+  </div>
+  {{/each}}
+
+  <div class="tip">
+    🎯 <b>支持类型</b>：图片 / 视频 / 文件直链 · m3u8 视频（自动并行分片 + ffmpeg 合并成 mp4）· 网页地址自动提取直链<br>
+    📤 <b>自动回传</b>：下载完成自动把文件发回当前会话（mp4 按视频消息发送）<br>
+    🖥 <b>Web 面板</b>：http://服务器IP:3006（token 用 <b>#拉取状态</b> 查看，主人可重置）
+  </div>
+  <div class="footer">MApull-Plugin · Powered by Yunzai</div>
+</body>
+</html>
