@@ -92,6 +92,9 @@ async function runTask (task) {
   store.updateTask(task.id, { status: 'downloading' })
   bcast(store.getTask(task.id), true)
   try {
+    if (/[\u2026]|%E2%80%A6/i.test(task.url)) {
+      throw new Error('链接不完整：中间含省略号(…)——长链接被聊天软件截断了。请到视频页面按 F12 → Network → 筛选 m3u8 → 右键 Copy link address 复制完整链接后再试')
+    }
     const kind = await detectKind(task.url)
     if (kind === 'm3u8') {
       store.updateTask(task.id, { kind: 'm3u8' })
@@ -224,8 +227,7 @@ async function downloadM3u8 (task) {
     const dl = async (idx) => {
       const seg = segs.list[idx]
       const segUrl = new URL(seg, base).href
-      const res = await fetchWithTimeout(segUrl)
-      const buf = Buffer.from(await res.arrayBuffer())
+      const buf = await fetchWithResume(segUrl)
       if (!buf.length) throw new Error(`分片 ${idx} 下载为空`)
       bytesDone += buf.length
       if (bytesDone > maxBytes) throw new Error(`总大小超过限制 ${cfg.max_file_mb}MB`)
@@ -430,16 +432,91 @@ export async function sendDoneLink (task) {
   return sendViaYunzai(task, text)
 }
 
+const FETCH_MAX_ATTEMPTS = 3
+const SEG_ATTEMPT_TIMEOUT = 60000
+
+function sleep (ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function fetchWithResume (url, timeoutMs = SEG_ATTEMPT_TIMEOUT, maxAttempts = FETCH_MAX_ATTEMPTS) {
+  const chunks = []
+  let have = 0
+  for (let n = 1; n <= maxAttempts; n++) {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+    try {
+      const headers = { 'User-Agent': UA, Referer: url }
+      if (have > 0) headers.Range = `bytes=${have}-`
+      const res = await fetch(url, { headers, redirect: 'follow', signal: ctrl.signal })
+      if (res.status === 416) {
+        break
+      }
+      if (res.status === 200 && have > 0) {
+        chunks.length = 0
+        have = 0
+      }
+      if (res.status === 206 || (res.status === 200 && have === 0)) {
+        const reader = res.body.getReader()
+        for (;;) {
+          const { value, done } = await reader.read()
+          if (done) break
+          if (value && value.length) {
+            chunks.push(Buffer.from(value))
+            have += value.length
+          }
+        }
+        return Buffer.concat(chunks)
+      }
+      if (res.status === 429 || res.status >= 500) {
+        await sleep(Math.min(500 * 2 ** (n - 1), 3000))
+        continue
+      }
+      throw new Error(`HTTP ${res.status} ${res.statusText}`)
+    } catch (err) {
+      const isHttpError = err instanceof Error && /^HTTP \d/.test(err.message)
+      if (!isHttpError && n < maxAttempts) {
+        await sleep(Math.min(500 * 2 ** (n - 1), 3000))
+        continue
+      }
+      throw err
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  return Buffer.concat(chunks)
+}
+
 function fetchWithTimeout (url, opts = {}) {
-  return fetch(url, {
-    method: opts.method || 'GET',
-    headers: { 'User-Agent': UA, Referer: url, ...(opts.headers || {}) },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(60000)
-  }).then(res => {
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`)
-    return res
-  })
+  return attemptFetch(1)
+
+  async function attemptFetch (n) {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 60000)
+    try {
+      const res = await fetch(url, {
+        method: opts.method || 'GET',
+        headers: { 'User-Agent': UA, Referer: url, ...(opts.headers || {}) },
+        redirect: 'follow',
+        signal: ctrl.signal
+      })
+      if ((res.status === 429 || res.status >= 500) && n < FETCH_MAX_ATTEMPTS) {
+        await sleep(Math.min(500 * 2 ** (n - 1), 3000))
+        return attemptFetch(n + 1)
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`)
+      return res
+    } catch (err) {
+      const isHttpError = err instanceof Error && /^HTTP \d/.test(err.message)
+      if (!isHttpError && n < FETCH_MAX_ATTEMPTS) {
+        await sleep(Math.min(500 * 2 ** (n - 1), 3000))
+        return attemptFetch(n + 1)
+      }
+      throw err
+    } finally {
+      clearTimeout(timer)
+    }
+  }
 }
 
 function onceDrain (ws) {
